@@ -776,19 +776,15 @@ if __name__ == '__main__':
 
 
     # ath_train_seq = ReadFileFromFasta("dataset\\ath_training_dataset_800.txt")
-    ath_train_seq = ReadFileFromFasta("E:/赵思远资料/赵思远资料/文献/PAMPred-main/CircPePred-mian/dataset3/dataset/all-sORFs-training.txt")
+    ath_train_seq = ReadFileFromFasta("all-sORFs-training.txt")
 
-    ath_imbalanced_test_seq = ReadFileFromFasta("dataset\\ath_independent_testing_dataset1.txt")
-    gma_imbalanced_test_seq = ReadFileFromFasta("dataset\\gma_independent_testing_dataset2.txt")
-    vvi_imbalanced_test_seq = ReadFileFromFasta("dataset\\vvi_independent_testing_dataset3.txt")
-    hybrid_species = ReadFileFromFasta("dataset\\verified_independent_testing_dataset4.txt")
+    ath_imbalanced_test_seq = ReadFileFromFasta("independent_testing_dataset1.txt")
+    gma_imbalanced_test_seq = ReadFileFromFasta("independent_testing_dataset2.txt")
 
     # 特征生成
     train_features_sORFs, train_features_aas, train_labels, train_features_name = FeatureGenerator(ath_train_seq)
     independent_test1_features, independent_test1_labels, independent_test1_features_name = FeatureGenerator(ath_imbalanced_test_seq, 'independent-test')
     independent_test2_features, independent_test2_labels, independent_test2_features_name = FeatureGenerator(gma_imbalanced_test_seq, 'independent-test')
-    independent_test3_features, independent_test3_labels, independent_test3_features_name = FeatureGenerator(vvi_imbalanced_test_seq, 'independent-test')
-    independent_test4_features, independent_test4_labels, independent_test4_features_name = FeatureGenerator(hybrid_species, 'independent-test')
     
     
     # undersample for sORFs
@@ -861,13 +857,9 @@ if __name__ == '__main__':
             train_features_fs = train_features_aas[key]
 
             test_x = {'independent_test1': independent_test1_features[key],
-                      'independent_test2': independent_test2_features[key],
-                      'independent_test3': independent_test3_features[key],
-                      'independent_test4': independent_test4_features[key]}
+                      'independent_test2': independent_test2_features[key]}
             test_y = {'independent_test1': independent_test1_labels,
-                      'independent_test2': independent_test2_labels,
-                      'independent_test3': independent_test3_labels,
-                      'independent_test4': independent_test4_labels}
+                      'independent_test2': independent_test2_labels}
 
             model_obj_arr = ['SVM', 'RF', 'GBDT', 'NB']
             
