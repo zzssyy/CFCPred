@@ -26,6 +26,6 @@ FeatureSelection.py is applied for feature selection but is not used in our pape
 
 HybridSample.py is used for resampling which contains undersampling and oversampling
 
-EnsembleLearning.py is used for model ensemble based on fuzzy voting, thus validing and predicting
-
 MLModel.py is used to construct and train machine learning classifiers
+
+EnsembleLearning.py is used for model ensemble based on fuzzy voting, thus validing and predicting
