@@ -20,10 +20,12 @@ scikit-learn == 1.6.1
 pandas == 2.3.3
 
 # Usage
-EnsembleLearning.py: model training and predict
+FeatureDescriptor.py is used for feature extraction
 
-FeatureDescriptor.py: feature extraction
+FeatureSelection.py is applied for feature selection but is not used in our paper
 
-HybridSample.py: resampling
+HybridSample.py is used for resampling which contains undersampling and oversampling
 
-MLModel.py: construct machine learning classifiers
+EnsembleLearning.py is used for model ensemble based on fuzzy voting, thus validing and predicting
+
+MLModel.py is used to construct and train machine learning classifiers
