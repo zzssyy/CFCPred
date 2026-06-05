@@ -2,6 +2,12 @@
 
 CFCPred is a novel circPEPs prediction tool that integrates cluster purity-guided resampling with fuzzy voting (FV).
 
+To address the scarcity of known circPEPs, a resampling strategy that mitigates class-imbalance in the training data by generating synthetic samples based on relationships among individual samples, their nearest neighbors, and their cluster assignments, is used. 
+
+Additionally, to tackle class overlap in the testing data, FV enables adaptive model selection and dynamic weight adjustment across the ensemble. 
+
+This adaptive ensemble integrates predictions from multiple base models to produce a robust consensus classification.
+
 # Requirement
 Python == 3.9.4
 
