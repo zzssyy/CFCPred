@@ -28,4 +28,4 @@ HybridSample.py is used for resampling which contains undersampling and oversamp
 
 MLModel.py is used to construct and train machine learning classifiers
 
-EnsembleLearning.py is used for model ensemble based on fuzzy voting, thus validing and predicting
+EnsembleLearning.py is used for model ensemble based on fuzzy voting, thus predicting
