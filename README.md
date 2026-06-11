@@ -30,4 +30,4 @@ MLModel.py is used to construct and train machine learning classifiers
 
 EnsembleLearning.py is used for model ensemble based on fuzzy voting, thus predicting
 
-![image](https://github.com/zzssyy/CFCPred/blob/main/Graphical_Abstract.tif)
+![image](https://github.com/zzssyy/CFCPred/blob/main/Graphical_Abstract.jpg)
