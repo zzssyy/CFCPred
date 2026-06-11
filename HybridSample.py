@@ -95,6 +95,9 @@ def undersample(X, y, k=5, C=5):
     # print(clusDom)
 
     # print(len(Sconj), len(noise))
+    if isinstance(Sconj[0], np.ndarray):
+        noise = [x.tolist() for x in noise]
+        Sconj = [x.tolist() for x in Sconj]
     noise = [x for x in noise if x not in Sconj]
     # print(len(Sconj), len(noise))
     # print(noise)
@@ -119,10 +122,10 @@ def undersample(X, y, k=5, C=5):
         if len(noise) != 0:
             for key, value in cdict.items():
                 vx = np.array(value)[:, :-1].tolist()
-                print(vx)
+                # print(vx)
                 vy = np.array(value)[:, -1].tolist()
                 indices = sorted([i for i, x in enumerate(vx) if x == ne], reverse=True)
-                print(indices)
+                # print(indices)
                 if len(indices) != 0:
                     for j in indices:
                         value.pop(j)
@@ -198,6 +201,8 @@ def oversample(cdict, cdict_index, data, label):
         gc[k] = int(1/c * v * G)
     # print("gc", gc)
     
+    if isinstance(data, np.ndarray):
+        data = data.tolist()
     
     for k,v in gc.items():
         for _ in range(v):
@@ -205,8 +210,15 @@ def oversample(cdict, cdict_index, data, label):
                 beta = random.random()
                 index = cdict_index[k]
                 s = []
-                s.append(data[index[0]])
-                s.append(data[index[1]]) 
+                counts = 0
+                for i in index:
+                    if isinstance(i, str):
+                        continue
+                    else:
+                        s.append(data[i])
+                        counts += 1
+                    if counts >=2:
+                        break
                 x = (np.array(s[0]) +  (np.array(s[1]) - np.array(s[0])) * beta).tolist()
                 y = 1
                 data.append(x)
@@ -342,90 +354,134 @@ def hybridsample(X, y):
         return X, y
     
 
-def fit(X_train, y_train, X_test, y_test, module="SL"):
-    '''
-    Parameters
-    ----------
-    X : TYPE
-        DESCRIPTION.
-    y : TYPE
-        DESCRIPTION.
-    module : TYPE, optional
-        DESCRIPTION. The default is "SL".
+# def fit(X_train, y_train, X_test, y_test, module="SL"):
+#     '''
+#     Parameters
+#     ----------
+#     X : TYPE
+#         DESCRIPTION.
+#     y : TYPE
+#         DESCRIPTION.
+#     module : TYPE, optional
+#         DESCRIPTION. The default is "SL".
 
-    Returns
-    -------
-    X : TYPE
-        DESCRIPTION.
-    y : TYPE
-        DESCRIPTION.
+#     Returns
+#     -------
+#     X : TYPE
+#         DESCRIPTION.
+#     y : TYPE
+#         DESCRIPTION.
 
-    '''
-    if module == "SL":
-        acc_final = 0.0
-        X_final = []
-        y_final = []
-        model = svm.SVC()
-        model.fit(X_train, y_train)
-        print(X_train, y_train)
-        y_pred = model.predict(X_test)
-        tn, fp, fn, tp = metrics.confusion_matrix(y_test, y_pred).ravel()
-        print(tn, fp, fn, tp)
-        sen = tp / (tp + fn)
-        spe = tn / (tn + fp)
-        acc = (sen * spe) ** 0.5
-        print(len(X_train), len(y_train))
-        print(acc)
-        while abs(acc - acc_final) >= 0.00001:
-            X_train_b, y_train_b = hybridsample(X_train, y_train)
-            model.fit(X_train_b, y_train_b)
-            print(X_train_b)
-            y_pred = model.predict(X_test)
-            tn, fp, fn, tp = metrics.confusion_matrix(y_test, y_pred).ravel()
-            print(tn, fp, fn, tp)
-            sen = tp / (tp + fn)
-            spe = tn / (tn + fp)
-            acc_final = (sen * spe) ** 0.5
-            if acc <= acc_final:
-                acc = acc_final
-                X_final, y_final = X_train_b, y_train_b
-            print(len(X_final), len(y_final))
-            print(acc_final)
-        return X_final, y_final
-    elif module == "UL":
-        train, y_train = hybridsample(X_train, y_train)
-        return X_train, y_train
-    else:
-        print("Noncompliant input!!!")
+#     '''
+#     if module == "SL":
+#         acc_final = 0.0
+#         X_final = []
+#         y_final = []
+#         model = svm.SVC()
+#         model.fit(X_train, y_train)
+#         print(X_train, y_train)
+#         y_pred = model.predict(X_test)
+#         tn, fp, fn, tp = metrics.confusion_matrix(y_test, y_pred).ravel()
+#         print(tn, fp, fn, tp)
+#         sen = tp / (tp + fn)
+#         spe = tn / (tn + fp)
+#         acc = (sen * spe) ** 0.5
+#         print(len(X_train), len(y_train))
+#         print(acc)
+#         while abs(acc - acc_final) >= 0.00001:
+#             X_train_b, y_train_b = hybridsample(X_train, y_train)
+#             model.fit(X_train_b, y_train_b)
+#             print(X_train_b)
+#             y_pred = model.predict(X_test)
+#             tn, fp, fn, tp = metrics.confusion_matrix(y_test, y_pred).ravel()
+#             print(tn, fp, fn, tp)
+#             sen = tp / (tp + fn)
+#             spe = tn / (tn + fp)
+#             acc_final = (sen * spe) ** 0.5
+#             if acc <= acc_final:
+#                 acc = acc_final
+#                 X_final, y_final = X_train_b, y_train_b
+#             print(len(X_final), len(y_final))
+#             print(acc_final)
+#         return X_final, y_final
+#     elif module == "UL":
+#         train, y_train = hybridsample(X_train, y_train)
+#         return X_train, y_train
+#     else:
+#         print("Noncompliant input!!!")
 
-def main():
-    import sys
-    sys.path.append(r'E:\赵思远资料\赵思远资料\文献\PAMPred-main\CircPePred-mian') 
-    import data_processing
-    from sklearn.model_selection import train_test_split
-    path = 'E:/赵思远资料/赵思远资料/文献/PAMPred-main/CircPePred-mian'
-    sORFs_posi_file = path + '/dataset3/dataset/sORFs-training.txt'
-    sORFs_nega_file = path + '/dataset3/dataset/non-sORFs-training.txt'
-    posi_aas_file = path + '/dataset3/dataset/peptides-training.txt'
-    nega_aas_file = path + '/dataset3/dataset/non-peptides-training.txt'
-    posi_sorfs_samples, nega_sorfs_samples, sorfs_f_index, sorfs_f_name = data_processing.get_sorfs_dataset(sORFs_posi_file, sORFs_nega_file)
-    posi_aas_file, nega_aas_file = data_processing.get_aas(sORFs_posi_file, sORFs_nega_file, posi_aas_file, nega_aas_file)
-    posi_aas_samples, nega_aas_samples, aas_f_index, aas_f_name = data_processing.get_aas_dataset(posi_aas_file, nega_aas_file)
+# def main():
+#     import sys
+#     sys.path.append(r'E:\赵思远资料\赵思远资料\文献\PAMPred-main\CircPePred-mian') 
+#     import data_processing
+#     from sklearn.model_selection import train_test_split
+#     path = 'E:/赵思远资料/赵思远资料/文献/PAMPred-main/CircPePred-mian'
+#     sORFs_posi_file = path + '/dataset3/dataset/sORFs-training.txt'
+#     sORFs_nega_file = path + '/dataset3/dataset/non-sORFs-training.txt'
+#     posi_aas_file = path + '/dataset3/dataset/peptides-training.txt'
+#     nega_aas_file = path + '/dataset3/dataset/non-peptides-training.txt'
+#     posi_sorfs_samples, nega_sorfs_samples, sorfs_f_index, sorfs_f_name = data_processing.get_sorfs_dataset(sORFs_posi_file, sORFs_nega_file)
+#     posi_aas_file, nega_aas_file = data_processing.get_aas(sORFs_posi_file, sORFs_nega_file, posi_aas_file, nega_aas_file)
+#     posi_aas_samples, nega_aas_samples, aas_f_index, aas_f_name = data_processing.get_aas_dataset(posi_aas_file, nega_aas_file)
 
-    posi_sorfs_samples, nega_sorfs_samples, posi_aas_samples, nega_aas_samples = data_processing.conn_shuf_split_dataset(posi_sorfs_samples, nega_sorfs_samples, posi_aas_samples, nega_aas_samples)
+#     posi_sorfs_samples, nega_sorfs_samples, posi_aas_samples, nega_aas_samples = data_processing.conn_shuf_split_dataset(posi_sorfs_samples, nega_sorfs_samples, posi_aas_samples, nega_aas_samples)
     
-    sorfs_samples = np.vstack((posi_sorfs_samples,nega_sorfs_samples))
-    # aas_samples = np.vstack((posi_aas_samples, nega_aas_samples))
+#     sorfs_samples = np.vstack((posi_sorfs_samples,nega_sorfs_samples))
+#     # aas_samples = np.vstack((posi_aas_samples, nega_aas_samples))
     
-    sorfs_samples_X = sorfs_samples[:, :-1]
-    sorfs_samples_y = sorfs_samples[:, -1]
+#     sorfs_samples_X = sorfs_samples[:, :-1]
+#     sorfs_samples_y = sorfs_samples[:, -1]
     
-    X_train, X_test, y_train, y_test = train_test_split(
-    sorfs_samples_X, sorfs_samples_y, 
-    test_size=0.3, 
-    random_state=42)
+#     X_train, X_test, y_train, y_test = train_test_split(
+#     sorfs_samples_X, sorfs_samples_y, 
+#     test_size=0.3, 
+#     random_state=42)
     
-    return X_train, X_test, y_train, y_test
+#     return X_train, X_test, y_train, y_test
+
+def sal(train_features_sORFs, train_features_aas, train_labels):
+    # resampling
+    # undersample for sORFs
+    train_features_fss = []
+    train_features_len = {}
+    for key in train_features_sORFs.keys():
+        
+        if key in ['ESMER3', 'ESMER4', 'ESMER5', 'kmer', 'ssm', 'ggap1', 'ggap2']:
+            train_features_fs = train_features_sORFs[key]
+            train_features_len[key] = len(train_features_fs[0])
+            if len(train_features_fss) == 0:
+                train_features_fss += train_features_fs.tolist()
+            else:
+                train_features_fss = np.hstack((train_features_fss, train_features_fs)).tolist()
+    cdict, cdict_index = undersample(train_features_fss, train_labels)
+    print(train_features_len)
+    
+    # oversample for aas
+    train_features_fss = []
+    train_features_len = {}
+    for key in train_features_aas.keys():
+        
+        if key not in ['ESMER3', 'ESMER4', 'ESMER5', 'kmer', 'ssm', 'ggap1', 'ggap2']:
+            print('key: ', key)
+            train_features_fs = train_features_aas[key]
+            train_features_len[key] = len(train_features_fs[0])
+            if len(train_features_fss) == 0:
+                train_features_fss += train_features_fs.tolist()
+            else:
+                train_features_fss = np.hstack((train_features_fss, train_features_fs)).tolist()
+    
+    org = len(train_features_fss)
+    if isinstance(cdict, dict):
+        train_features_fss, train_labels = oversample(cdict, cdict_index, train_features_fss, train_labels)
+    
+    for fea in train_features_fss[org:]:
+        sums = 0
+        for key in train_features_len.keys():
+            train_feature_fs = fea[sums : sums + train_features_len[key]]
+            train_features_aas[key] = np.vstack((train_features_aas[key], train_feature_fs))
+            sums += train_features_len[key]
+    
+    return train_features_aas, train_labels
 
 # X_train = [[0], [0.4], [1.7], [1.7], [1.9], [2], [3], [4], [5], [1.8], [2.5], [3.5], [4.5]]
 # y_train = [1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]

@@ -111,12 +111,15 @@ def TrainBaselineMLModelOnly(feature_name, train_x, train_y, model_obj, cv_fold,
     folds = StratifiedKFold(n_splits=cv_fold, shuffle=True, random_state=100).split(train_x, train_y)
 
     for i, (train, valid) in enumerate(folds):
-        ml_dict = {'NB': GaussianNB(),
-                   'RF': RandomForestClassifier(random_state=100),
-                   'GBDT': GradientBoostingClassifier(random_state=100),
-                   'SVM': svm.SVC(random_state=100, probability=True)}
+        ml_dict = {
+            'NB': GaussianNB(),
+            'RF': RandomForestClassifier(random_state=100),
+            'GBDT': GradientBoostingClassifier(random_state=100),
+            'SVM': svm.SVC(random_state=100, probability=True)
+                   }
 
         train_X, train_Y = train_x[train], train_y[train]
+        
         valid_X, valid_Y = train_x[valid], train_y[valid]
         model = ml_dict[model_obj]
         model.fit(train_X, train_Y)
@@ -135,7 +138,7 @@ def TrainBaselineMLModelOnly(feature_name, train_x, train_y, model_obj, cv_fold,
     valid_scores = np.around(np.array(arr_valid).sum(axis=0) / cv_fold, 3)
     valid_confusions = np.around(np.array(con_valid).sum(axis=0) / cv_fold, 3)
     
-    print("model_obj=", model_obj)
+    # print("model_obj=", model_obj)
     print("valid_dataset_scores: ", valid_scores)
     print("valid_dataset_confusions: ", valid_confusions)
     
@@ -159,3 +162,53 @@ def ModelFiltered(model_all, model_weight, threshold = 85.0):
             continue
         
     return model_weight
+
+def TrainBaselineMLModelOnlyButResampling(feature_name, train_x, train_y, model_obj, cv_fold, **kwargs):
+    train_feature_class = []
+    train_feature_pro = []
+    train_y_new = []
+    models = []
+    arr_valid = []
+    con_valid = []
+    folds = StratifiedKFold(n_splits=cv_fold, shuffle=True, random_state=100).split(train_x, train_y)
+
+    for i, (train, valid) in enumerate(folds):
+        ml_dict = {
+            'NB': GaussianNB(),
+            'RF': RandomForestClassifier(random_state=100),
+            'GBDT': GradientBoostingClassifier(random_state=100),
+            'SVM': svm.SVC(random_state=100, probability=True)
+                   }
+
+        train_X, train_Y = train_x[train], train_y[train]
+        from HybridSample import undersample, oversample
+        cdict, cdict_index = undersample(train_X, train_Y)
+        if isinstance(cdict, dict):
+            train_features_fss, train_labels = oversample(cdict, cdict_index, train_X, train_Y)
+        
+        valid_X, valid_Y = train_x[valid], train_y[valid]
+        model = ml_dict[model_obj]
+        model.fit(train_X, train_Y)
+        models.append(model)
+
+        predict_valid_y_class = model.predict(valid_X)
+        train_feature_class.extend(predict_valid_y_class)
+        predict_valid_y_pro = np.array(model.predict_proba(valid_X))[:, 1]
+        train_feature_pro.extend(predict_valid_y_pro)
+
+        train_y_new.extend(valid_Y)
+        metrics_value, confusion = MetricsCalculate(valid_Y, predict_valid_y_class, predict_valid_y_pro)
+        arr_valid.append(metrics_value)
+        con_valid.append(confusion)
+
+    valid_scores = np.around(np.array(arr_valid).sum(axis=0) / cv_fold, 3)
+    valid_confusions = np.around(np.array(con_valid).sum(axis=0) / cv_fold, 3)
+    
+    # print("model_obj=", model_obj)
+    print("valid_dataset_scores: ", valid_scores)
+    print("valid_dataset_confusions: ", valid_confusions)
+            
+    if kwargs['test'] == True:
+        print("test_dataset_scores: ", valid_scores)
+
+    return valid_scores

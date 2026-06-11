@@ -12,7 +12,7 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn import svm
 
 from sklearn.model_selection import StratifiedKFold
-from HybridSample import undersample, oversample
+from HybridSample import sal
 from FeatureDescriptor import ReadFileFromFasta, FeatureGenerator
 from FeatureSelection import EFISS_ES_FeatureSelection
 from MLModel import MetricsCalculate, TrainBaselineMLModelOnly, ModelFiltered
@@ -339,218 +339,43 @@ def Ensemble_Classifier_Result(valid_y_class_arr_all, valid_y_pro_1_arr_all, val
     print("validation_dataset_scores: ", valid_scores)
     print("validation_dataset_confusion: ", confusion)
 
-def Ensemble_Classifier_Test(train_x, train_y, test_x, test_y, index_arr: dict, model_obj_arr, vote, count, threshold):
-    ml_dict = {'NB': GaussianNB(),
-               'RF': RandomForestClassifier(random_state=100),
-               'GBDT': GradientBoostingClassifier(random_state=100),
-               'SVM': svm.SVC(random_state=100, probability=True)}
+def Ensemble_Classifier_Test(valid_y_class_arr_all, valid_y_pro_1_arr_all, valid_y_pro_0_arr_all, model_weight_all, train_labels, valids, vote, count, threshold):
+    """
+    valids = [index,index,index,...,index]
+    valid_y_class_arr_all = {"aac":{"NB":[1,1,0,...], "RF":[1,1,0,...],...,"SVM":[1,1,0,...]}, "dpc":{},..., "ctdd":{}}
+    valid_y_pro_1_arr_all = {"aac":{"NB":[1,1,0,...], "RF":[1,1,0,...],...,"SVM":[1,1,0,...]}, "dpc":{},..., "ctdd":{}}
+    valid_y_pro_0_arr_all = {"aac":{"NB":[1,1,0,...], "RF":[1,1,0,...],...,"SVM":[1,1,0,...]}, "dpc":{},..., "ctdd":{}}
+    model_weight_all = {"aac":{"NB": , "RF": ,...,"SVM": }, "dpc":{},..., "ctdd":{}}
+    """
+    valid_y = [train_labels[i] for i in valids]
+    
+    model_weight = []
+    for value in model_weight_all.values():
+        for v in value.values():
+            model_weight.append(v)
+    
+    valid_y_class_arr = []
+    for value in valid_y_class_arr_all.values():
+        for v in value.values():
+            valid_y_class_arr.append(v)
+        
+    valid_y_pro_1_arr = []
+    for value in valid_y_pro_1_arr_all.values():
+        for v in value.values():
+            valid_y_pro_1_arr.append(v)
+            
+    valid_y_pro_0_arr = []
+    for value in valid_y_pro_0_arr_all.values():
+        for v in value.values():
+            valid_y_pro_0_arr.append(v)
 
-    model_weight = {}
-    for key in model_obj_arr:
-        clf_arr = TrainBaselineMLModelOnly(train_x[:, index_arr[key]], train_y, key, 5, test=False)
-        model_weight[key] = clf_arr[3]
+    for test_dataset in test_x.keys():
 
-    if vote == 'hard':
+            
 
-        for test_dataset in test_x.keys():
-            predict_test_y_class = []
-            predict_test_y_pro_1 = []
+        metrics_value, confusion = MetricsCalculate(test_y[test_dataset], np.array(predict_test_y_class), np.array(predict_test_y_pro_1))
 
-            test_y_class_arr = {}
-            test_y_pro_1_arr = {}
-            test_y_pro_0_arr = {}
-
-            for key in model_obj_arr:
-                model = ml_dict[key]
-                model.fit(train_x[:, index_arr[key]], train_y)
-                test_y_class_arr[key] = np.array(model.predict(test_x[test_dataset][:, index_arr[key]]))
-                test_y_pro_1_arr[key] = np.array(model.predict_proba(test_x[test_dataset][:, index_arr[key]]))[:, 1]
-                test_y_pro_0_arr[key] = np.array(model.predict_proba(test_x[test_dataset][:, index_arr[key]]))[:, 0]
-
-            for index in range(len(test_x[test_dataset])):
-
-                test_y_class_1 = 0
-                test_y_pro_1 = 0
-                test_y_pro_0 = 0
-
-                temp_count = 0
-                for key in model_obj_arr:
-                    temp_count = temp_count + model_weight[key]
-
-                for key in model_obj_arr:
-                    test_y_class_1 = test_y_class_1 + test_y_class_arr[key][index]
-                    test_y_pro_1 = test_y_pro_1 + (model_weight[key] / temp_count) * test_y_pro_1_arr[key][index]
-                    test_y_pro_0 = test_y_pro_0 + (model_weight[key] / temp_count) * test_y_pro_0_arr[key][index]
-
-                if len(model_obj_arr) % 2 == 0:
-                    if test_y_class_1 > (len(model_obj_arr)) // 2:
-                        predict_test_y_class.append(1)
-
-                    if test_y_class_1 == (len(model_obj_arr)) // 2:
-                        if test_y_pro_1 >= test_y_pro_0:
-                            predict_test_y_class.append(1)
-                        if test_y_pro_1 < test_y_pro_0:
-                            predict_test_y_class.append(0)
-
-                    if test_y_class_1 < (len(model_obj_arr)) // 2:
-                        predict_test_y_class.append(0)
-
-                if len(model_obj_arr) % 2 != 0:
-                    if test_y_class_1 >= (len(model_obj_arr) + 1) // 2:
-                        predict_test_y_class.append(1)
-                    else:
-                        predict_test_y_class.append(0)
-
-                predict_test_y_pro_1.append(test_y_pro_1)
-
-            metrics_value, confusion = MetricsCalculate(test_y[test_dataset], np.array(predict_test_y_class), np.array(predict_test_y_pro_1))
-            print("test_dataset_scores: ", metrics_value, confusion)
-
-    if vote == 'soft':
-        for test_dataset in test_x.keys():
-            # print(test_dataset)
-            predict_test_y_class = []
-            predict_test_y_pro_1 = []
-
-            test_y_pro_1_arr = {}
-            test_y_pro_0_arr = {}
-
-            for key in model_obj_arr:
-                model = ml_dict[key]
-                model.fit(train_x[:, index_arr[key]], train_y)
-                test_y_pro_1_arr[key] = np.array(model.predict_proba(test_x[test_dataset][:, index_arr[key]]))[:, 1]
-                test_y_pro_0_arr[key] = np.array(model.predict_proba(test_x[test_dataset][:, index_arr[key]]))[:, 0]
-
-            for index in range(len(test_x[test_dataset])):
-
-                test_y_pro_1 = 0
-                test_y_pro_0 = 0
-
-                temp_count = 0
-                for key in model_obj_arr:
-                    temp_count = temp_count + model_weight[key]
-
-                for key in model_obj_arr:
-                    test_y_pro_1 = test_y_pro_1 + (model_weight[key] / temp_count) * test_y_pro_1_arr[key][index]
-                    test_y_pro_0 = test_y_pro_0 + (model_weight[key] / temp_count) * test_y_pro_0_arr[key][index]
-
-                if test_y_pro_1 >= test_y_pro_0:
-                    predict_test_y_class.append(1)
-
-                if test_y_pro_1 < test_y_pro_0:
-                    predict_test_y_class.append(0)
-
-                predict_test_y_pro_1.append(test_y_pro_1)
-
-            metrics_value, confusion = MetricsCalculate(test_y[test_dataset], np.array(predict_test_y_class), np.array(predict_test_y_pro_1))
-            print("test_dataset_scores: ", metrics_value, confusion)
-
-    if vote == 'devs':
-
-        for test_dataset in test_x.keys():
-
-            # print(test_dataset)
-
-            predict_test_y_class_hard = []
-            predict_test_y_pro_1 = []
-
-            test_y_class_arr = {}
-            test_y_pro_1_arr = {}
-            test_y_pro_0_arr = {}
-
-            for key in model_obj_arr:
-                model = ml_dict[key]
-                model.fit(train_x[:, index_arr[key]], train_y)
-                test_y_class_arr[key] = np.array(model.predict(test_x[test_dataset][:, index_arr[key]]))
-                test_y_pro_1_arr[key] = np.array(model.predict_proba(test_x[test_dataset][:, index_arr[key]]))[:, 1]
-                test_y_pro_0_arr[key] = np.array(model.predict_proba(test_x[test_dataset][:, index_arr[key]]))[:, 0]
-
-            for index in range(len(test_x[test_dataset])):
-
-                test_y_class_1 = 0
-                test_y_pro_1 = 0
-                test_y_pro_0 = 0
-
-                temp_count = 0
-                for key in model_obj_arr:
-                    temp_count = temp_count + model_weight[key]
-
-                for key in model_obj_arr:
-                    test_y_class_1 = test_y_class_1 + test_y_class_arr[key][index]
-                    test_y_pro_1 = test_y_pro_1 + (model_weight[key] / temp_count) * test_y_pro_1_arr[key][index]
-                    test_y_pro_0 = test_y_pro_0 + (model_weight[key] / temp_count) * test_y_pro_0_arr[key][index]
-
-                # hard
-                if len(model_obj_arr) % 2 == 0:
-                    if test_y_class_1 > (len(model_obj_arr)) / 2:
-                        predict_test_y_class_hard.append(1)
-
-                    if test_y_class_1 == (len(model_obj_arr)) / 2:
-                        if test_y_pro_1 >= test_y_pro_0:
-                            predict_test_y_class_hard.append(1)
-                        if test_y_pro_1 < test_y_pro_0:
-                            predict_test_y_class_hard.append(0)
-
-                    if test_y_class_1 < (len(model_obj_arr)) / 2:
-                        predict_test_y_class_hard.append(0)
-
-                if len(model_obj_arr) % 2 != 0:
-                    if test_y_class_1 >= (len(model_obj_arr) + 1) / 2:
-                        predict_test_y_class_hard.append(1)
-                    else:
-                        predict_test_y_class_hard.append(0)
-
-                predict_test_y_pro_1.append(test_y_pro_1)
-
-            predict_test_y_class = predict_test_y_class_hard
-
-            for index in range(len(test_x[test_dataset])):
-
-                test_y_pro_0 = 0
-                test_y_pro_1 = 0
-
-                flag = 0
-
-                model_u = {}
-
-                DC_dict = {}
-
-                for key in model_obj_arr:
-                    model_u[key] = abs(test_y_pro_1_arr[key][index] - test_y_pro_0_arr[key][index])
-
-                for key in model_obj_arr:
-                    if model_u[key] <= threshold:
-                        flag += 1
-                    DC_dict[key] = model_weight[key] + model_u[key]
-
-                DC_sum = sum(DC_dict.values())
-
-                for key in model_obj_arr:
-                    DC_dict[key] = DC_dict[key] / DC_sum
-
-                model_obj_arr_ranked = sorted(DC_dict.items(), key=lambda d: d[1], reverse=True)
-
-                if flag >= (len(model_obj_arr) / 2):
-
-                    temp_count = 0
-                    for model in model_obj_arr_ranked[:count]:
-                        temp_count = temp_count + model[1]
-
-                    for model in model_obj_arr_ranked[:count]:
-                        test_y_pro_0 = test_y_pro_0 + (model[1] / temp_count) * test_y_pro_0_arr[model[0]][index]
-                        test_y_pro_1 = test_y_pro_1 + (model[1] / temp_count) * test_y_pro_1_arr[model[0]][index]
-
-                    if test_y_pro_1 >= test_y_pro_0:
-                        predict_test_y_class[index] = 1
-
-                    if test_y_pro_1 < test_y_pro_0:
-                        predict_test_y_class[index] = 0
-
-                    predict_test_y_pro_1[index] = test_y_pro_1
-
-            metrics_value, confusion = MetricsCalculate(test_y[test_dataset], np.array(predict_test_y_class), np.array(predict_test_y_pro_1))
-
-            print("test_dataset_scores: ", metrics_value, confusion)
+        print("test_dataset_scores: ", metrics_value, confusion)
 
 def Ensemble_Classifier_Pred(train_x, train_y, test_x, index_arr: dict, model_obj_arr, vote, count, threshold):
     ml_dict = {'NB': GaussianNB(),
@@ -773,63 +598,11 @@ if __name__ == '__main__':
 
     print("开始时间:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
     start = time.time()
-
-
-    # ath_train_seq = ReadFileFromFasta("dataset\\ath_training_dataset_800.txt")
-    ath_train_seq = ReadFileFromFasta("all-sORFs-training.txt")
-
-    ath_imbalanced_test_seq = ReadFileFromFasta("independent_testing_dataset1.txt")
-    gma_imbalanced_test_seq = ReadFileFromFasta("independent_testing_dataset2.txt")
+    ath_train_seq = ReadFileFromFasta("E:/赵思远资料/赵思远资料/文献/PAMPred-main/CircPePred-mian/dataset3/dataset/all-sORFs-training.txt")
 
     # 特征生成
     train_features_sORFs, train_features_aas, train_labels, train_features_name = FeatureGenerator(ath_train_seq)
-    independent_test1_features, independent_test1_labels, independent_test1_features_name = FeatureGenerator(ath_imbalanced_test_seq, 'independent-test')
-    independent_test2_features, independent_test2_labels, independent_test2_features_name = FeatureGenerator(gma_imbalanced_test_seq, 'independent-test')
-    
-    
-    # undersample for sORFs
-    train_features_fss = []
-    train_features_len = {}
-    for key in train_features_sORFs.keys():
-        
-        if key in ['ESMER3', 'ESMER4', 'ESMER5', 'kmer', 'ssm', 'ggap1', 'ggap2']:
-            train_features_fs = train_features_sORFs[key]
-            train_features_len[key] = len(train_features_fs[0])
-            if len(train_features_fss) == 0:
-                train_features_fss += train_features_fs.tolist()
-            else:
-                train_features_fss = np.hstack((train_features_fss, train_features_fs)).tolist()
-    cdict, cdict_index = undersample(train_features_fss, train_labels)
-    print(train_features_len)
-    
-    # oversample for aas
-    train_features_fss = []
-    train_features_len = {}
-    for key in train_features_aas.keys():
-        
-        if key not in ['ESMER3', 'ESMER4', 'ESMER5', 'kmer', 'ssm', 'ggap1', 'ggap2']:
-            print('key: ', key)
-            train_features_fs = train_features_aas[key]
-            train_features_len[key] = len(train_features_fs[0])
-            if len(train_features_fss) == 0:
-                train_features_fss += train_features_fs.tolist()
-            else:
-                train_features_fss = np.hstack((train_features_fss, train_features_fs)).tolist()
-    
-    org = len(train_features_fss)
-    if isinstance(cdict, dict):
-        train_features_fss, train_labels = oversample(cdict, cdict_index, train_features_fss, train_labels)
-    
-    for fea in train_features_fss[org:]:
-        sums = 0
-        for key in train_features_len.keys():
-            train_feature_fs = fea[sums : sums + train_features_len[key]]
-            train_features_aas[key] = np.vstack((train_features_aas[key], train_feature_fs))
-            sums += train_features_len[key]
-
-    # optimal_feature = {'ESMER3': [18, 27, 39, 34], 'ESMER4': [20, 115, 54, 60], 'ESMER5': [196, 170, 191, 133]}
-
-    # feature_quantity = optimal_feature['ESMER5']
+    train_features_aas, train_labels = sal(train_features_sORFs, train_features_aas, train_labels)
 
     index_arr = {}
     model_weight_all = {}
@@ -849,17 +622,7 @@ if __name__ == '__main__':
             index_arr['RF'] = filtered_feature[:]
             index_arr['GBDT'] = filtered_feature[:]
 
-            # index_arr['NB'] = filtered_feature[: feature_quantity[0]]
-            # index_arr['SVM'] = filtered_feature[: feature_quantity[1]]
-            # index_arr['RF'] = filtered_feature[: feature_quantity[2]]
-            # index_arr['GBDT'] = filtered_feature[: feature_quantity[3]]
-
             train_features_fs = train_features_aas[key]
-
-            test_x = {'independent_test1': independent_test1_features[key],
-                      'independent_test2': independent_test2_features[key]}
-            test_y = {'independent_test1': independent_test1_labels,
-                      'independent_test2': independent_test2_labels}
 
             model_obj_arr = ['SVM', 'RF', 'GBDT', 'NB']
             
@@ -876,17 +639,6 @@ if __name__ == '__main__':
     Ensemble_Classifier_Result(valid_y_class_arr_all_f, valid_y_pro_1_arr_all_f, valid_y_pro_0_arr_all_f, model_weight_all, train_labels, valids, "hard")
     Ensemble_Classifier_Result(valid_y_class_arr_all_f, valid_y_pro_1_arr_all_f, valid_y_pro_0_arr_all_f, model_weight_all, train_labels, valids, "devs", 3, 0.05)
 
-    # # 测试
-    # print('hard:')
-    # Ensemble_Classifier_Test(train_features_fs, train_labels, test_x, test_y, index_arr, model_obj_arr, 'hard', 100000, 100000)
-    # print('soft:')
-    # Ensemble_Classifier_Test(train_features_fs, train_labels, test_x, test_y, index_arr, model_obj_arr, 'soft', 100000, 100000)
-    # print('devs:')
-    # Ensemble_Classifier_Test(train_features_fs, train_labels, test_x, test_y, index_arr, model_obj_arr, 'devs', 3, 0.05)
-
-    # 预测
-    # print('devs:')
-    # Ensemble_Classifier_Pred(train_features_fs, train_labels, test_x, index_arr, model_obj_arr, 'devs', 3, 0.05)
 
     print("*************************************************************************************************************************************")
 

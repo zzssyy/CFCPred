@@ -913,4 +913,3 @@ def FeatureGenerator(fastas, flag='train-validate'):
         return FeatureDict_sORFs, FeatureDict_aas, labels, FeatureNameDict
     elif flag == 'independent-test':
         return FeatureDict_aas, labels, FeatureNameDict
-    
