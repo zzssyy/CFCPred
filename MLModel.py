@@ -135,18 +135,8 @@ def TrainBaselineMLModelOnly(feature_name, train_x, train_y, model_obj, cv_fold,
         arr_valid.append(metrics_value)
         con_valid.append(confusion)
 
-    valid_scores = np.around(np.array(arr_valid).sum(axis=0) / cv_fold, 3)
-    valid_confusions = np.around(np.array(con_valid).sum(axis=0) / cv_fold, 3)
+    valid_scores = np.around(np.array(arr_valid).sum(axis=0) / cv_fold, 3)           
     
-    # print("model_obj=", model_obj)
-    print("valid_dataset_scores: ", valid_scores)
-    print("valid_dataset_confusions: ", valid_confusions)
-    
-    # with open("models_cv.csv", 'a+') as f:
-    #     con = ",".join([str(i) for i in valid_confusions])
-    #     s = model_obj + ","  + feature_name + "," + con + '\n'
-    #     f.write(s)
-            
     if kwargs['test'] == True:
         print("test_dataset_scores: ", valid_scores)
 
