@@ -236,7 +236,7 @@ if __name__ == '__main__':
 
     print("开始时间:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
     start = time.time()
-    ath_train_seq = ReadFileFromFasta("E:/赵思远资料/赵思远资料/文献/PAMPred-main/CircPePred-mian/dataset3/dataset/all-sORFs-training.txt")
+    ath_train_seq = ReadFileFromFasta("datasets\\all-sORFs-training.txt")
 
     # 特征生成
     train_features_sORFs, train_features_aas, train_labels, train_features_name = FeatureGenerator(ath_train_seq)
